@@ -50,7 +50,7 @@ const cloneGeneratorChannel = async (channel: VoiceBasedChannel | null) => {
 			GEN_CHANNEL_PREFIX.length
 		)}`,
 		parent: channel.parent,
-		position: channel.parent.children.size - 1,
+		position: channel.parent.children.size,
 	});
 	return genChannel;
 };
