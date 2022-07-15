@@ -18,6 +18,10 @@ const client = new Client({
 	],
 });
 
+const log = (message: string) => {
+	console.log(message);
+}
+
 const isGeneratorChannel = (
 	channel: VoiceBasedChannel | null
 ): channel is VoiceBasedChannel =>
@@ -36,6 +40,7 @@ const deleteChannelIfEmpty = async (channel: VoiceBasedChannel | null) => {
 	if (!isVoiceChannel(channel)) return;
 
 	if (channel.members.size > 0) return;
+	log(`Deleting channel ${channel.name} it is empty`);
 
 	await channel.delete();
 };
@@ -44,6 +49,8 @@ const cloneGeneratorChannel = async (channel: VoiceBasedChannel | null) => {
 	if (!isGeneratorChannel(channel)) return null;
 
 	if (!channel.parent) return null;
+	log(`Cloning channel ${channel.name}`);
+	log(`Parent has currently ${channel.parent.children.size} children`);
 
 	const genChannel = await channel.clone({
 		name: `${VOICE_CHANNEL_PREFIX}${channel.name.slice(
@@ -52,6 +59,9 @@ const cloneGeneratorChannel = async (channel: VoiceBasedChannel | null) => {
 		parent: channel.parent,
 		position: channel.parent.children.size,
 	});
+
+	log(`Parent now has ${channel.parent.children.size} children`);
+	log(`Cloned channel ${genChannel.name} is at position ${genChannel.position}`);
 	return genChannel;
 };
 
@@ -65,7 +75,7 @@ client.on('voiceStateUpdate', async (oldState, newState) => {
 });
 
 client.on('ready', () => {
-	console.log(`Logged in as ${client.user?.tag}!`);
+	log(`Logged in as ${client.user?.tag}!`);
 });
 
 client.login(DISCORD_TOKEN);
