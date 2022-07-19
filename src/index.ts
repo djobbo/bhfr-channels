@@ -1,4 +1,4 @@
-import { Client, VoiceBasedChannel } from "discord.js"
+import { Client, GatewayIntentBits, VoiceBasedChannel } from "discord.js"
 import { config as loadEnv } from "dotenv"
 
 loadEnv()
@@ -11,10 +11,10 @@ const { DISCORD_TOKEN } = process.env
 
 const client = new Client({
     intents: [
-        "GUILDS",
-        "GUILD_MEMBERS",
-        "GUILD_MESSAGES",
-        "GUILD_VOICE_STATES",
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildVoiceStates,
     ],
 })
 
@@ -50,21 +50,14 @@ const cloneGeneratorChannel = async (channel: VoiceBasedChannel | null) => {
 
     if (!channel.parent) return null
     log(`Cloning channel ${channel.name}`)
-    const position = channel.parent.children.filter((channel) =>
-        channel.isVoice(),
-    ).size
-    log(`Parent has currently ${channel.parent.children.size} children`)
-    log(`Cloning channel ${channel.name} at position ${position}`)
 
     const genChannel = await channel.clone({
         name: `${VOICE_CHANNEL_PREFIX}${channel.name.slice(
             GEN_CHANNEL_PREFIX.length,
         )}`,
         parent: channel.parent,
-        position,
+        position: 999,
     })
-
-    log(`Parent now has ${channel.parent.children.size} children`)
     log(
         `Cloned channel ${genChannel.name} is at position ${genChannel.position}`,
     )
