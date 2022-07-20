@@ -152,7 +152,7 @@ client.on("raw", async (event: { d: RawReactionEventData; t: string }) => {
 
     if (!message) return
 
-    console.log(`${user.tag} reacted with ${data.emoji.name}`)
+    log(`${user.tag} reacted with ${data.emoji.name}`)
 
     if (data.emoji.name !== "⭐") return
 
