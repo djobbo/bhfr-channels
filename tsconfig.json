@@ -14,6 +14,7 @@
 		"exactOptionalPropertyTypes": true,
 		"noImplicitReturns": true,
 		"skipLibCheck": true,
-		"outDir": "./dist"
+		"outDir": "./dist",
+		"lib": ["esnext"]
 	}
 }

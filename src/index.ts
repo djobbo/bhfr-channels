@@ -1,4 +1,14 @@
-import { Client, GatewayIntentBits, VoiceBasedChannel } from "discord.js"
+import { EmbedBuilder } from "@discordjs/builders"
+import {
+    ChannelType,
+    Client,
+    GatewayIntentBits,
+    GuildMember,
+    Message,
+    PermissionFlagsBits,
+    VoiceBasedChannel,
+    User,
+} from "discord.js"
 import { config as loadEnv } from "dotenv"
 
 loadEnv()
@@ -7,7 +17,19 @@ const CATEGORY_PREFIX = "🎮 "
 const GEN_CHANNEL_PREFIX = "➕ "
 const VOICE_CHANNEL_PREFIX = "🎮 "
 
-const { DISCORD_TOKEN } = process.env
+const {
+    DISCORD_TOKEN = "",
+    ADD_MOMENTS_ROLES_IDS = "",
+    MOMENTS_CHANNEL_ID = "",
+} = process.env
+
+const addMomentsRoleIds = ADD_MOMENTS_ROLES_IDS.split(",")
+
+const isMemberAdmin = (member?: GuildMember): member is GuildMember =>
+    !!member?.permissions.has(PermissionFlagsBits.Administrator)
+
+const canAddMoment = (member?: GuildMember): member is GuildMember =>
+    !!member && addMomentsRoleIds.some((id) => member.roles.cache.has(id))
 
 const client = new Client({
     intents: [
@@ -15,11 +37,38 @@ const client = new Client({
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildMessageReactions,
     ],
 })
 
 const log = (message: string) => {
     console.log(message)
+}
+
+const logMoment = (message: Message, user: User) => {
+    const channel = message.guild?.channels.cache.get(MOMENTS_CHANNEL_ID)
+    if (!channel || channel.type !== ChannelType.GuildText) return
+
+    const embed = new EmbedBuilder()
+        .setAuthor({
+            name: message.author.tag,
+            iconURL: message.author.displayAvatarURL(),
+            url: message.url,
+        })
+        .setDescription(
+            `Ajouté le ${Intl.DateTimeFormat("fr").format(new Date())}`,
+        )
+        .addFields({
+            name: "Message",
+            value: message.content,
+            inline: false,
+        })
+        .setFooter({
+            text: user.username,
+            iconURL: user.displayAvatarURL(),
+        })
+
+    channel.send({ embeds: [embed] })
 }
 
 const isGeneratorChannel = (
@@ -71,6 +120,47 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 
         await newState.member?.voice.setChannel(channel)
     })
+})
+
+type RawReactionEventData = {
+    user_id: string
+    message_id: string
+    emoji: { name: string; id: null }
+    channel_id: string
+    guild_id: string
+}
+
+const isReactionAddEvent = (
+    event: any,
+): event is object & { t: "MESSAGE_REACTION_ADD" } =>
+    event.t === "MESSAGE_REACTION_ADD"
+
+client.on("raw", async (event: { d: RawReactionEventData; t: string }) => {
+    if (!isReactionAddEvent(event)) return
+
+    const { d: data } = event
+    const user = await client.users.fetch(data.user_id)
+
+    if (!user || user.bot) return
+
+    const channel = client.channels.cache.get(data.channel_id)
+    if (!channel || channel.type !== ChannelType.GuildText) return
+
+    if (channel.messages.cache.has(data.message_id)) return
+
+    const message = await channel.messages.fetch(data.message_id)
+
+    if (!message) return
+
+    console.log(`${user.tag} reacted with ${data.emoji.name}`)
+
+    if (data.emoji.name !== "⭐") return
+
+    const member = message.guild?.members.cache.get(user.id)
+
+    if (!isMemberAdmin(member) && !canAddMoment(member)) return
+
+    logMoment(message, user)
 })
 
 client.on("ready", () => {
