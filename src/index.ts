@@ -16,6 +16,7 @@ loadEnv()
 const CATEGORY_PREFIX = "🎮 "
 const GEN_CHANNEL_PREFIX = "➕ "
 const VOICE_CHANNEL_PREFIX = "🎮 "
+const MOMENT_EMOJI = '⭐'
 
 const {
     DISCORD_TOKEN = "",
@@ -45,9 +46,11 @@ const log = (message: string) => {
     console.log(message)
 }
 
-const logMoment = (message: Message, user: User) => {
+const logMoment = async (message: Message, user: User) => {
     const channel = message.guild?.channels.cache.get(MOMENTS_CHANNEL_ID)
     if (!channel || channel.type !== ChannelType.GuildText) return
+
+    let hasContent = false
 
     const embed = new EmbedBuilder()
         .setAuthor({
@@ -56,19 +59,33 @@ const logMoment = (message: Message, user: User) => {
             url: message.url,
         })
         .setDescription(
-            `Ajouté le ${Intl.DateTimeFormat("fr").format(new Date())}`,
+            `Ajouté le ${Intl.DateTimeFormat("fr").format(message.createdAt)}`,
         )
-        .addFields({
+
+        .setFooter({
+            text: `Ajouté par ${user.username} le ${Intl.DateTimeFormat('fr').format(new Date())}`,
+            iconURL: user.displayAvatarURL(),
+        })
+
+    if (message.content) {
+        hasContent = true
+        embed.addFields({
             name: "Message",
             value: message.content,
             inline: false,
         })
-        .setFooter({
-            text: user.username,
-            iconURL: user.displayAvatarURL(),
-        })
+    }
 
-    channel.send({ embeds: [embed] })
+    if (message.attachments.size > 0) {
+        hasContent = true
+        embed.setImage(message.attachments.first()?.url ?? null)
+    }
+
+    if (!hasContent) return
+
+    log(`${MOMENT_EMOJI} Logging moment in ${channel.name}`)
+
+    await channel.send({ embeds: [embed] })
 }
 
 const isGeneratorChannel = (
@@ -154,13 +171,18 @@ client.on("raw", async (event: { d: RawReactionEventData; t: string }) => {
 
     log(`${user.tag} reacted with ${data.emoji.name}`)
 
-    if (data.emoji.name !== "⭐") return
+    if (data.emoji.name !== MOMENT_EMOJI) return
 
     const member = message.guild?.members.cache.get(user.id)
 
     if (!isMemberAdmin(member) && !canAddMoment(member)) return
 
-    logMoment(message, user)
+    try {
+        await logMoment(message, user)
+    }
+    catch (e) {
+        console.error(e)
+    }
 })
 
 client.on("ready", () => {
