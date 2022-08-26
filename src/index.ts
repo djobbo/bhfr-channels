@@ -1,4 +1,3 @@
-import { EmbedBuilder } from "@discordjs/builders"
 import {
     ChannelType,
     Client,
@@ -8,6 +7,8 @@ import {
     PermissionFlagsBits,
     VoiceBasedChannel,
     User,
+    EmbedBuilder,
+    VoiceState
 } from "discord.js"
 import { config as loadEnv } from "dotenv"
 
@@ -46,7 +47,9 @@ const log = (message: string) => {
     console.log(message)
 }
 
-const logMoment = async (message: Message, user: User) => {
+const newLine = () => console.log()
+
+const saveMoment = async (message: Message, user: User) => {
     const channel = message.guild?.channels.cache.get(MOMENTS_CHANNEL_ID)
     if (!channel || channel.type !== ChannelType.GuildText) return
 
@@ -84,6 +87,7 @@ const logMoment = async (message: Message, user: User) => {
     if (!hasContent) return
 
     log(`${MOMENT_EMOJI} Logging moment in ${channel.name}`)
+    newLine()
 
     await channel.send({ embeds: [embed] })
 }
@@ -102,37 +106,73 @@ const isVoiceChannel = (
     channel.name.startsWith(VOICE_CHANNEL_PREFIX) &&
     !!channel.parent?.name.startsWith(CATEGORY_PREFIX)
 
-const deleteChannelIfEmpty = async (channel: VoiceBasedChannel | null) => {
+const deleteChannelIfEmpty = async (voiceState: VoiceState) => {
+    const channel = voiceState.channel
+
     if (!isVoiceChannel(channel)) return
 
-    if (channel.members.size > 0) return
-    log(`Deleting channel ${channel.name} it is empty`)
+    log("╭ " + `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has left [${channel.name}]`)
+
+    if (channel.members.size > 0) {
+        log("│ " + `  ${channel.members.size}/${channel.userLimit} users in channel:`)
+        for (const member of channel.members.values()) {
+            log("│ " + `    - ${member.user.tag} (${voiceState.member?.user.id})`)
+        }
+        log("╰ " + new Date().toLocaleString('fr'))
+        newLine()
+        return
+    }
+
+    log("│ " + `  No users in channel => Deleting channel`)
+    log("╰ " + new Date().toLocaleString('fr'))
+    newLine()
 
     await channel.delete()
+
+    return
 }
 
-const cloneGeneratorChannel = async (channel: VoiceBasedChannel | null) => {
+const cloneGeneratorChannel = async (voiceState: VoiceState) => {
+    const channel = voiceState.channel
+
     if (!isGeneratorChannel(channel)) return null
 
     if (!channel.parent) return null
-    log(`Cloning channel ${channel.name}`)
+
+    const newChannelName = channel.name.slice(
+        GEN_CHANNEL_PREFIX.length,
+    )
 
     const genChannel = await channel.clone({
-        name: `${VOICE_CHANNEL_PREFIX}${channel.name.slice(
-            GEN_CHANNEL_PREFIX.length,
-        )}`,
+        name: `${VOICE_CHANNEL_PREFIX}${newChannelName}`,
         parent: channel.parent,
         position: 999,
     })
-    log(
-        `Cloned channel ${genChannel.name} is at position ${genChannel.position}`,
-    )
+
+    log("╭ " + `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has created [${channel.name}]`)
+    log("╰ " + new Date().toLocaleString('fr'))
+    newLine()
+
     return genChannel
 }
 
+const logUserJoinedVoiceChannel = async (voiceState: VoiceState) => {
+    const channel = voiceState.channel
+
+    if (!isVoiceChannel(channel)) return
+    log("╭ " + `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has joined [${channel.name}]`)
+    log("│ " + `  ${channel.members.size}/${channel.userLimit} users in channel:`)
+    for (const member of channel.members.values()) {
+        log("│ " + `    - ${member.user.tag} (${voiceState.member?.user.id})`)
+    }
+    log("╰ " + new Date().toLocaleString('fr'))
+    newLine()
+}
+
 client.on("voiceStateUpdate", async (oldState, newState) => {
-    await deleteChannelIfEmpty(oldState.channel)
-    await cloneGeneratorChannel(newState.channel).then(async (channel) => {
+    await deleteChannelIfEmpty(oldState)
+    await logUserJoinedVoiceChannel(newState)
+    await cloneGeneratorChannel(newState).then(async (channel) => {
         if (!channel) return
 
         await newState.member?.voice.setChannel(channel)
@@ -169,7 +209,8 @@ client.on("raw", async (event: { d: RawReactionEventData; t: string }) => {
 
     if (!message) return
 
-    log(`${user.tag} reacted with ${data.emoji.name}`)
+    log(`${user.tag} (${user.id}) reacted with ${data.emoji.name}`)
+    newLine()
 
     if (data.emoji.name !== MOMENT_EMOJI) return
 
@@ -178,7 +219,7 @@ client.on("raw", async (event: { d: RawReactionEventData; t: string }) => {
     if (!isMemberAdmin(member) && !canAddMoment(member)) return
 
     try {
-        await logMoment(message, user)
+        await saveMoment(message, user)
     }
     catch (e) {
         console.error(e)
@@ -187,6 +228,7 @@ client.on("raw", async (event: { d: RawReactionEventData; t: string }) => {
 
 client.on("ready", () => {
     log(`Logged in as ${client.user?.tag}!`)
+    newLine()
 })
 
 client.login(DISCORD_TOKEN)
