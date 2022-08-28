@@ -8,7 +8,9 @@ import {
     VoiceBasedChannel,
     User,
     EmbedBuilder,
-    VoiceState
+    VoiceState,
+    Channel,
+    TextChannel
 } from "discord.js"
 import { config as loadEnv } from "dotenv"
 
@@ -23,6 +25,7 @@ const {
     DISCORD_TOKEN = "",
     ADD_MOMENTS_ROLES_IDS = "",
     MOMENTS_CHANNEL_ID = "",
+    VOICE_LOGS_CHANNEL_ID = "",
 } = process.env
 
 const addMomentsRoleIds = ADD_MOMENTS_ROLES_IDS.split(",")
@@ -49,9 +52,23 @@ const log = (message: string) => {
 
 const newLine = () => console.log()
 
+const isTextChannel = (channel?: Channel): channel is TextChannel => !!channel && channel.type === ChannelType.GuildText
+
+const getMomentsChannel = () => {
+    const channel = client.channels.cache.get(MOMENTS_CHANNEL_ID)
+    if (!isTextChannel(channel)) return null
+    return channel
+}
+
+const getVoiceLogsChannel = () => {
+    const channel = client.channels.cache.get(VOICE_LOGS_CHANNEL_ID)
+    if (!isTextChannel(channel)) return null
+    return channel
+}
+
 const saveMoment = async (message: Message, user: User) => {
-    const channel = message.guild?.channels.cache.get(MOMENTS_CHANNEL_ID)
-    if (!channel || channel.type !== ChannelType.GuildText) return
+    const channel = getMomentsChannel()
+    if (!channel) return
 
     let hasContent = false
 
@@ -111,7 +128,16 @@ const deleteChannelIfEmpty = async (voiceState: VoiceState) => {
 
     if (!isVoiceChannel(channel)) return
 
+    const voiceLogsChannel = getVoiceLogsChannel()
+
     log("╭ " + `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has left [${channel.name}]`)
+    const embed = new EmbedBuilder() //
+        .setTitle(channel.name)
+        .addFields({
+            name: 'Événement',
+            value: `${voiceState.member?.user} (${voiceState.member?.user.id}) est parti`,
+        })
+        .setTimestamp(new Date())
 
     if (channel.members.size > 0) {
         log("│ " + `  ${channel.members.size}/${channel.userLimit} users in channel:`)
@@ -120,6 +146,21 @@ const deleteChannelIfEmpty = async (voiceState: VoiceState) => {
         }
         log("╰ " + new Date().toLocaleString('fr'))
         newLine()
+
+
+        embed //
+            .setColor("Orange")
+            .setDescription(`${channel.members.size}/${channel.userLimit} joueurs restants`)
+            .addFields({
+                name: 'Joueurs',
+                value: channel.members.map((member) => `${member.user} (${member.user.id})`).join('\n'),
+            })
+
+
+        if (!!voiceLogsChannel) {
+            await voiceLogsChannel.send({ embeds: [embed] })
+        }
+
         return
     }
 
@@ -129,7 +170,13 @@ const deleteChannelIfEmpty = async (voiceState: VoiceState) => {
 
     await channel.delete()
 
-    return
+    embed //
+        .setDescription(`Aucun joueur restant, suppression du salon`)
+        .setColor("Red")
+
+    if (!!voiceLogsChannel) {
+        await voiceLogsChannel.send({ embeds: [embed] })
+    }
 }
 
 const cloneGeneratorChannel = async (voiceState: VoiceState) => {
@@ -138,6 +185,8 @@ const cloneGeneratorChannel = async (voiceState: VoiceState) => {
     if (!isGeneratorChannel(channel)) return null
 
     if (!channel.parent) return null
+
+    const voiceLogsChannel = getVoiceLogsChannel()
 
     const newChannelName = channel.name.slice(
         GEN_CHANNEL_PREFIX.length,
@@ -153,6 +202,18 @@ const cloneGeneratorChannel = async (voiceState: VoiceState) => {
     log("╰ " + new Date().toLocaleString('fr'))
     newLine()
 
+    if (!!voiceLogsChannel) {
+        const embed = new EmbedBuilder() //
+            .setTitle(channel.name)
+            .addFields({
+                name: 'Événement',
+                value: `${voiceState.member?.user} (${voiceState.member?.user.id}) a créé le salon ${genChannel.name}`,
+            })
+            .setTimestamp(new Date())
+            .setColor("Blue")
+        await voiceLogsChannel.send({ embeds: [embed] })
+    }
+
     return genChannel
 }
 
@@ -160,6 +221,7 @@ const logUserJoinedVoiceChannel = async (voiceState: VoiceState) => {
     const channel = voiceState.channel
 
     if (!isVoiceChannel(channel)) return
+
     log("╭ " + `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has joined [${channel.name}]`)
     log("│ " + `  ${channel.members.size}/${channel.userLimit} users in channel:`)
     for (const member of channel.members.values()) {
@@ -167,6 +229,23 @@ const logUserJoinedVoiceChannel = async (voiceState: VoiceState) => {
     }
     log("╰ " + new Date().toLocaleString('fr'))
     newLine()
+
+    const voiceLogsChannel = getVoiceLogsChannel()
+
+    if (!!voiceLogsChannel) {
+        const embed = new EmbedBuilder() //
+            .setTitle(channel.name)
+            .addFields({
+                name: 'Événement',
+                value: `${voiceState.member?.user} (${voiceState.member?.user.id}) a rejoint le salon`,
+            }, {
+                name: 'Joueurs',
+                value: channel.members.map((member) => `${member.user} (${member.user.id})`).join('\n'),
+            })
+            .setTimestamp(new Date())
+            .setColor("Green")
+        await voiceLogsChannel.send({ embeds: [embed] })
+    }
 }
 
 client.on("voiceStateUpdate", async (oldState, newState) => {
