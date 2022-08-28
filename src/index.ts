@@ -140,7 +140,7 @@ const deleteChannelIfEmpty = async (voiceState: VoiceState) => {
         .setTimestamp(new Date())
 
     if (channel.members.size > 0) {
-        log("╰ " + `  ${channel.members.size}/${channel.userLimit} users in channel:`)
+        log("╰ " + `  ${channel.members.size}/${channel.userLimit} users in channel`)
         newLine()
 
         embed //
@@ -198,7 +198,6 @@ const cloneGeneratorChannel = async (voiceState: VoiceState) => {
     if (!!voiceLogsChannel) {
         const embed = new EmbedBuilder() //
             .setTitle(channel.name)
-            .setDescription(`${channel.members.size}/${channel.userLimit} joueurs`)
             .addFields({
                 name: 'Événement',
                 value: `${voiceState.member?.user} (${voiceState.member?.user.id}) a créé le salon ${genChannel.name}`,
@@ -217,7 +216,7 @@ const logUserJoinedVoiceChannel = async (voiceState: VoiceState) => {
     if (!isVoiceChannel(channel)) return
 
     log("╭ " + `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has joined [${channel.name}]`)
-    log("╰ " + `  ${channel.members.size}/${channel.userLimit} users in channel:`)
+    log("╰ " + `  ${channel.members.size}/${channel.userLimit} users in channel`)
     newLine()
 
     const voiceLogsChannel = getVoiceLogsChannel()
@@ -225,6 +224,7 @@ const logUserJoinedVoiceChannel = async (voiceState: VoiceState) => {
     if (!!voiceLogsChannel) {
         const embed = new EmbedBuilder() //
             .setTitle(channel.name)
+            .setDescription(`${channel.members.size}/${channel.userLimit} joueurs`)
             .addFields({
                 name: 'Événement',
                 value: `${voiceState.member?.user} (${voiceState.member?.user.id}) a rejoint le salon`,
