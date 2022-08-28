@@ -140,13 +140,8 @@ const deleteChannelIfEmpty = async (voiceState: VoiceState) => {
         .setTimestamp(new Date())
 
     if (channel.members.size > 0) {
-        log("│ " + `  ${channel.members.size}/${channel.userLimit} users in channel:`)
-        for (const member of channel.members.values()) {
-            log("│ " + `    - ${member.user.tag} (${voiceState.member?.user.id})`)
-        }
-        log("╰ " + new Date().toLocaleString('fr'))
+        log("╰ " + `  ${channel.members.size}/${channel.userLimit} users in channel:`)
         newLine()
-
 
         embed //
             .setColor("Orange")
@@ -164,8 +159,7 @@ const deleteChannelIfEmpty = async (voiceState: VoiceState) => {
         return
     }
 
-    log("│ " + `  No users in channel => Deleting channel`)
-    log("╰ " + new Date().toLocaleString('fr'))
+    log("╰ " + `  No users in channel => Deleting channel`)
     newLine()
 
     await channel.delete()
@@ -198,13 +192,13 @@ const cloneGeneratorChannel = async (voiceState: VoiceState) => {
         position: 999,
     })
 
-    log("╭ " + `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has created [${channel.name}]`)
-    log("╰ " + new Date().toLocaleString('fr'))
+    log(`${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has created [${channel.name}]`)
     newLine()
 
     if (!!voiceLogsChannel) {
         const embed = new EmbedBuilder() //
             .setTitle(channel.name)
+            .setDescription(`${channel.members.size}/${channel.userLimit} joueurs`)
             .addFields({
                 name: 'Événement',
                 value: `${voiceState.member?.user} (${voiceState.member?.user.id}) a créé le salon ${genChannel.name}`,
@@ -223,11 +217,7 @@ const logUserJoinedVoiceChannel = async (voiceState: VoiceState) => {
     if (!isVoiceChannel(channel)) return
 
     log("╭ " + `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has joined [${channel.name}]`)
-    log("│ " + `  ${channel.members.size}/${channel.userLimit} users in channel:`)
-    for (const member of channel.members.values()) {
-        log("│ " + `    - ${member.user.tag} (${voiceState.member?.user.id})`)
-    }
-    log("╰ " + new Date().toLocaleString('fr'))
+    log("╰ " + `  ${channel.members.size}/${channel.userLimit} users in channel:`)
     newLine()
 
     const voiceLogsChannel = getVoiceLogsChannel()
@@ -249,6 +239,8 @@ const logUserJoinedVoiceChannel = async (voiceState: VoiceState) => {
 }
 
 client.on("voiceStateUpdate", async (oldState, newState) => {
+    if (oldState.channel?.id === newState.channel?.id) return
+
     await deleteChannelIfEmpty(oldState)
     await logUserJoinedVoiceChannel(newState)
     await cloneGeneratorChannel(newState).then(async (channel) => {
