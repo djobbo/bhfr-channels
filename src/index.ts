@@ -10,7 +10,12 @@ import {
     EmbedBuilder,
     VoiceState,
     Channel,
-    TextChannel
+    TextChannel,
+    VoiceChannel,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    MessageActionRowComponentBuilder,
 } from "discord.js"
 import { config as loadEnv } from "dotenv"
 
@@ -19,14 +24,19 @@ loadEnv()
 const CATEGORY_PREFIX = "🎮 "
 const GEN_CHANNEL_PREFIX = "➕ "
 const VOICE_CHANNEL_PREFIX = "🎮 "
-const MOMENT_EMOJI = '⭐'
+const MOMENT_EMOJI = "⭐"
 
 const {
     DISCORD_TOKEN = "",
     ADD_MOMENTS_ROLES_IDS = "",
     MOMENTS_CHANNEL_ID = "",
     VOICE_LOGS_CHANNEL_ID = "",
+    VOICE_CHANNELS_RULES_ROLE_ID = "",
+    SUPPORT_CHANNEL_ID = "",
+    RULES_CHANNEL_ID = "",
 } = process.env
+
+const ACCEPT_VOICE_CHAT_RULES_CUSTOM_ID = "accept_voice_chat_rules"
 
 const addMomentsRoleIds = ADD_MOMENTS_ROLES_IDS.split(",")
 
@@ -36,11 +46,17 @@ const isMemberAdmin = (member?: GuildMember): member is GuildMember =>
 const canAddMoment = (member?: GuildMember): member is GuildMember =>
     !!member && addMomentsRoleIds.some((id) => member.roles.cache.has(id))
 
+const hasAcceptedVoiceChatRules = (member: GuildMember | null) =>
+    !VOICE_CHANNELS_RULES_ROLE_ID ||
+    !member ||
+    member.roles.cache.has(VOICE_CHANNELS_RULES_ROLE_ID)
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.GuildMessageReactions,
     ],
@@ -52,7 +68,8 @@ const log = (message: string) => {
 
 const newLine = () => console.log()
 
-const isTextChannel = (channel?: Channel): channel is TextChannel => !!channel && channel.type === ChannelType.GuildText
+const isTextChannel = (channel?: Channel): channel is TextChannel =>
+    !!channel && channel.type === ChannelType.GuildText
 
 const getMomentsChannel = () => {
     const channel = client.channels.cache.get(MOMENTS_CHANNEL_ID)
@@ -81,9 +98,10 @@ const saveMoment = async (message: Message, user: User) => {
         .setDescription(
             `Ajouté le ${Intl.DateTimeFormat("fr").format(message.createdAt)}`,
         )
-
         .setFooter({
-            text: `Ajouté par ${user.username} le ${Intl.DateTimeFormat('fr').format(new Date())}`,
+            text: `Ajouté par ${user.username} le ${Intl.DateTimeFormat(
+                "fr",
+            ).format(new Date())}`,
             iconURL: user.displayAvatarURL(),
         })
 
@@ -111,14 +129,14 @@ const saveMoment = async (message: Message, user: User) => {
 
 const isGeneratorChannel = (
     channel: VoiceBasedChannel | null,
-): channel is VoiceBasedChannel =>
+): channel is VoiceChannel =>
     !!channel &&
     channel.name.startsWith(GEN_CHANNEL_PREFIX) &&
     !!channel.parent?.name.startsWith(CATEGORY_PREFIX)
 
 const isVoiceChannel = (
     channel: VoiceBasedChannel | null,
-): channel is VoiceBasedChannel =>
+): channel is VoiceChannel =>
     !!channel &&
     channel.name.startsWith(VOICE_CHANNEL_PREFIX) &&
     !!channel.parent?.name.startsWith(CATEGORY_PREFIX)
@@ -130,31 +148,50 @@ const deleteChannelIfEmpty = async (voiceState: VoiceState) => {
 
     const voiceLogsChannel = getVoiceLogsChannel()
 
-    log("╭ " + `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has left [${channel.name}]`)
+    log(
+        "╭ " +
+        `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has left [${channel.name}]`,
+    )
     const embed = new EmbedBuilder() //
         .setTitle(channel.name)
         .addFields({
-            name: 'Événement',
-            value: `${voiceState.member?.user} (${voiceState.member?.user.id}) est parti`,
+            name: "Événement",
+            value: `${voiceState.member?.user} (${voiceState.member?.user.id}) a quitté le salon`,
         })
         .setTimestamp(new Date())
 
     if (channel.members.size > 0) {
-        log("╰ " + `  ${channel.members.size}/${channel.userLimit} users in channel`)
+        log(
+            "╰ " +
+            `  ${channel.members.size}/${channel.userLimit} users in channel`,
+        )
         newLine()
 
         embed //
             .setColor("Orange")
-            .setDescription(`${channel.members.size}/${channel.userLimit} joueurs restants`)
+            .setDescription(
+                `${channel.members.size}/${channel.userLimit} joueurs restants`,
+            )
             .addFields({
-                name: 'Joueurs',
-                value: channel.members.map((member) => `${member.user} (${member.user.id})`).join('\n'),
+                name: "Joueurs",
+                value: channel.members
+                    .map((member) => `${member.user} (${member.user.id})`)
+                    .join("\n"),
             })
 
-
         if (!!voiceLogsChannel) {
-            await voiceLogsChannel.send({ embeds: [embed] })
+            voiceLogsChannel.send({ embeds: [embed] })
         }
+
+        channel.send({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor("Orange")
+                    .setTitle(`${voiceState.member?.user.tag} a quitté le salon`)
+                    .setDescription(`id: ${voiceState.member?.user.id}`)
+                    .setTimestamp(new Date()),
+            ],
+        })
 
         return
     }
@@ -169,7 +206,7 @@ const deleteChannelIfEmpty = async (voiceState: VoiceState) => {
         .setColor("Red")
 
     if (!!voiceLogsChannel) {
-        await voiceLogsChannel.send({ embeds: [embed] })
+        voiceLogsChannel.send({ embeds: [embed] })
     }
 }
 
@@ -182,9 +219,7 @@ const cloneGeneratorChannel = async (voiceState: VoiceState) => {
 
     const voiceLogsChannel = getVoiceLogsChannel()
 
-    const newChannelName = channel.name.slice(
-        GEN_CHANNEL_PREFIX.length,
-    )
+    const newChannelName = channel.name.slice(GEN_CHANNEL_PREFIX.length)
 
     const genChannel = await channel.clone({
         name: `${VOICE_CHANNEL_PREFIX}${newChannelName}`,
@@ -192,19 +227,21 @@ const cloneGeneratorChannel = async (voiceState: VoiceState) => {
         position: 999,
     })
 
-    log(`${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has created [${channel.name}]`)
+    log(
+        `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has created [${channel.name}]`,
+    )
     newLine()
 
     if (!!voiceLogsChannel) {
         const embed = new EmbedBuilder() //
             .setTitle(channel.name)
             .addFields({
-                name: 'Événement',
+                name: "Événement",
                 value: `${voiceState.member?.user} (${voiceState.member?.user.id}) a créé le salon ${genChannel.name}`,
             })
             .setTimestamp(new Date())
             .setColor("Blue")
-        await voiceLogsChannel.send({ embeds: [embed] })
+        voiceLogsChannel.send({ embeds: [embed] })
     }
 
     return genChannel
@@ -215,8 +252,58 @@ const logUserJoinedVoiceChannel = async (voiceState: VoiceState) => {
 
     if (!isVoiceChannel(channel)) return
 
-    log("╭ " + `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has joined [${channel.name}]`)
-    log("╰ " + `  ${channel.members.size}/${channel.userLimit} users in channel`)
+    if (!hasAcceptedVoiceChatRules(voiceState.member)) {
+        channel.send({
+            content: `Salut ${voiceState.member?.user} ! C'est peut être la première fois que tu crées ou rejoins un salon vocal, merci de lire et d'accepter les règles suivantes:`,
+            embeds: [
+                new EmbedBuilder()
+                    .setColor("White")
+                    .setTitle("Règles des salons vocaux")
+                    .addFields(
+                        {
+                            name: "Règles générales",
+                            value: `:straight_ruler: Les règles générales du serveur s'appliquent également dans les salons vocaux.\n*Lisez les attentivement et respectez-les: <#${RULES_CHANNEL_ID}>.*`,
+                        },
+                        {
+                            name: "Modération",
+                            value: `:warning: Les modérateurs peuvent voir qui est rentré et sorti du salon.\n:octagonal_sign: Si quelqu\'un ne respecte pas les règles (toxicité, insultes, etc.), merci d'ouvrir un ticket dans <#${SUPPORT_CHANNEL_ID}> **AVEC UNE PREUVE** (vidéo de préférence).`,
+                        },
+                        {
+                            name: "Rooms Brawlhalla",
+                            value: `:ledger: Merci d'envoyer le **numéro de room actuel** dans le salon textuel associé à votre vocal.\n:handshake: Cela permet aux autres joueurs de vous rejoindre plus facilement.\n*N'oubliez pas de le renvoyer à chaque fois que vous changez de room!*`,
+                        },
+                    ),
+            ],
+            components: [
+                new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(ACCEPT_VOICE_CHAT_RULES_CUSTOM_ID)
+                        .setEmoji("✅")
+                        .setLabel("Accepter")
+                        .setStyle(ButtonStyle.Secondary),
+                ),
+            ],
+        })
+    }
+
+    channel.send({
+        embeds: [
+            new EmbedBuilder()
+                .setColor("Green")
+                .setTitle(`${voiceState.member?.user.tag} a rejoint le salon`)
+                .setDescription(`id: ${voiceState.member?.user.id}`)
+                .setTimestamp(new Date()),
+        ],
+    })
+
+    log(
+        "╭ " +
+        `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has joined [${channel.name}]`,
+    )
+    log(
+        "╰ " +
+        `  ${channel.members.size}/${channel.userLimit} users in channel`,
+    )
     newLine()
 
     const voiceLogsChannel = getVoiceLogsChannel()
@@ -224,17 +311,24 @@ const logUserJoinedVoiceChannel = async (voiceState: VoiceState) => {
     if (!!voiceLogsChannel) {
         const embed = new EmbedBuilder() //
             .setTitle(channel.name)
-            .setDescription(`${channel.members.size}/${channel.userLimit} joueurs`)
-            .addFields({
-                name: 'Événement',
-                value: `${voiceState.member?.user} (${voiceState.member?.user.id}) a rejoint le salon`,
-            }, {
-                name: 'Joueurs',
-                value: channel.members.map((member) => `${member.user} (${member.user.id})`).join('\n'),
-            })
+            .setDescription(
+                `${channel.members.size}/${channel.userLimit} joueurs`,
+            )
+            .addFields(
+                {
+                    name: "Événement",
+                    value: `${voiceState.member?.user} (${voiceState.member?.user.id}) a rejoint le salon`,
+                },
+                {
+                    name: "Joueurs",
+                    value: channel.members
+                        .map((member) => `${member.user} (${member.user.id})`)
+                        .join("\n"),
+                },
+            )
             .setTimestamp(new Date())
             .setColor("Green")
-        await voiceLogsChannel.send({ embeds: [embed] })
+        voiceLogsChannel.send({ embeds: [embed] })
     }
 }
 
@@ -245,8 +339,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     await logUserJoinedVoiceChannel(newState)
     await cloneGeneratorChannel(newState).then(async (channel) => {
         if (!channel) return
-
-        await newState.member?.voice.setChannel(channel)
+        newState.member?.voice.setChannel(channel)
     })
 })
 
@@ -291,10 +384,38 @@ client.on("raw", async (event: { d: RawReactionEventData; t: string }) => {
 
     try {
         await saveMoment(message, user)
-    }
-    catch (e) {
+    } catch (e) {
         console.error(e)
     }
+})
+
+client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isButton()) return
+
+    if (interaction.customId !== ACCEPT_VOICE_CHAT_RULES_CUSTOM_ID) return
+    const member = interaction.member as GuildMember
+
+    if (!member) return
+
+    if (!interaction.message.mentions.has(member.user)) {
+        interaction.reply({
+            content: `Vous n'êtes pas concerné par ce message.`,
+            ephemeral: true,
+        })
+        return
+    }
+
+    if (hasAcceptedVoiceChatRules(member)) return
+
+    await member.roles.add(VOICE_CHANNELS_RULES_ROLE_ID)
+
+    await interaction.reply({
+        content: `Merci ${member.user} ! Bon jeu !`,
+        ephemeral: true,
+    })
+
+
+    interaction.message.delete()
 })
 
 client.on("ready", () => {
