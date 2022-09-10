@@ -5,7 +5,6 @@ import {
     GuildMember,
     Message,
     PermissionFlagsBits,
-    VoiceBasedChannel,
     User,
     EmbedBuilder,
     VoiceState,
@@ -16,6 +15,7 @@ import {
     ButtonBuilder,
     ButtonStyle,
     MessageActionRowComponentBuilder,
+    GuildChannel,
 } from "discord.js"
 import { config as loadEnv } from "dotenv"
 
@@ -40,6 +40,8 @@ const ACCEPT_VOICE_CHAT_RULES_CUSTOM_ID = "accept_voice_chat_rules"
 
 const addMomentsRoleIds = ADD_MOMENTS_ROLES_IDS.split(",")
 
+const brawlhallaRoomNumbers = new Map<string, string>()
+
 const isMemberAdmin = (member?: GuildMember): member is GuildMember =>
     !!member?.permissions.has(PermissionFlagsBits.Administrator)
 
@@ -62,6 +64,24 @@ const client = new Client({
     ],
 })
 
+const voiceChatRulesEmbed = new EmbedBuilder()
+    .setColor("White")
+    .setTitle("Règles des salons vocaux")
+    .addFields(
+        {
+            name: "Règles générales",
+            value: `:straight_ruler: Les règles générales du serveur s'appliquent également dans les salons vocaux.\n*Lisez les attentivement et respectez-les: <#${RULES_CHANNEL_ID}>.*`,
+        },
+        {
+            name: "Modération",
+            value: `:warning: Les modérateurs peuvent voir qui est rentré et sorti du salon.\n:octagonal_sign: Si quelqu\'un ne respecte pas les règles (toxicité, insultes, etc.), merci d'ouvrir un ticket dans <#${SUPPORT_CHANNEL_ID}> **AVEC UNE PREUVE** (vidéo de préférence).`,
+        },
+        {
+            name: "Rooms Brawlhalla",
+            value: `:ledger: Merci d'envoyer le **numéro de room actuel** dans le salon textuel associé à votre vocal.\n:handshake: Cela permet aux autres joueurs de vous rejoindre plus facilement.\n*N'oubliez pas de le renvoyer à chaque fois que vous changez de room!*`,
+        },
+    )
+
 const log = (message: string) => {
     console.log(message)
 }
@@ -70,6 +90,10 @@ const newLine = () => console.log()
 
 const isTextChannel = (channel?: Channel): channel is TextChannel =>
     !!channel && channel.type === ChannelType.GuildText
+
+const brawlhallaRoomNumberRegex = /^\d{6}$/
+const isBrawlhallaRoomNumber = (content: string) =>
+    brawlhallaRoomNumberRegex.test(content)
 
 const getMomentsChannel = () => {
     const channel = client.channels.cache.get(MOMENTS_CHANNEL_ID)
@@ -128,14 +152,14 @@ const saveMoment = async (message: Message, user: User) => {
 }
 
 const isGeneratorChannel = (
-    channel: VoiceBasedChannel | null,
+    channel: GuildChannel | null,
 ): channel is VoiceChannel =>
     !!channel &&
     channel.name.startsWith(GEN_CHANNEL_PREFIX) &&
     !!channel.parent?.name.startsWith(CATEGORY_PREFIX)
 
 const isVoiceChannel = (
-    channel: VoiceBasedChannel | null,
+    channel: GuildChannel | null,
 ): channel is VoiceChannel =>
     !!channel &&
     channel.name.startsWith(VOICE_CHANNEL_PREFIX) &&
@@ -150,7 +174,7 @@ const deleteChannelIfEmpty = async (voiceState: VoiceState) => {
 
     log(
         "╭ " +
-        `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has left [${channel.name}]`,
+            `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has left [${channel.name}]`,
     )
     const embed = new EmbedBuilder() //
         .setTitle(channel.name)
@@ -163,7 +187,7 @@ const deleteChannelIfEmpty = async (voiceState: VoiceState) => {
     if (channel.members.size > 0) {
         log(
             "╰ " +
-            `  ${channel.members.size}/${channel.userLimit} users in channel`,
+                `  ${channel.members.size}/${channel.userLimit} users in channel`,
         )
         newLine()
 
@@ -187,7 +211,9 @@ const deleteChannelIfEmpty = async (voiceState: VoiceState) => {
             embeds: [
                 new EmbedBuilder()
                     .setColor("Orange")
-                    .setTitle(`${voiceState.member?.user.tag} a quitté le salon`)
+                    .setTitle(
+                        `${voiceState.member?.user.tag} a quitté le salon`,
+                    )
                     .setDescription(`id: ${voiceState.member?.user.id}`)
                     .setTimestamp(new Date()),
             ],
@@ -200,6 +226,7 @@ const deleteChannelIfEmpty = async (voiceState: VoiceState) => {
     newLine()
 
     await channel.delete()
+    brawlhallaRoomNumbers.delete(channel.id)
 
     embed //
         .setDescription(`Aucun joueur restant, suppression du salon`)
@@ -255,25 +282,7 @@ const logUserJoinedVoiceChannel = async (voiceState: VoiceState) => {
     if (!hasAcceptedVoiceChatRules(voiceState.member)) {
         channel.send({
             content: `Salut ${voiceState.member?.user} ! C'est peut être la première fois que tu crées ou rejoins un salon vocal, merci de lire et d'accepter les règles suivantes:`,
-            embeds: [
-                new EmbedBuilder()
-                    .setColor("White")
-                    .setTitle("Règles des salons vocaux")
-                    .addFields(
-                        {
-                            name: "Règles générales",
-                            value: `:straight_ruler: Les règles générales du serveur s'appliquent également dans les salons vocaux.\n*Lisez les attentivement et respectez-les: <#${RULES_CHANNEL_ID}>.*`,
-                        },
-                        {
-                            name: "Modération",
-                            value: `:warning: Les modérateurs peuvent voir qui est rentré et sorti du salon.\n:octagonal_sign: Si quelqu\'un ne respecte pas les règles (toxicité, insultes, etc.), merci d'ouvrir un ticket dans <#${SUPPORT_CHANNEL_ID}> **AVEC UNE PREUVE** (vidéo de préférence).`,
-                        },
-                        {
-                            name: "Rooms Brawlhalla",
-                            value: `:ledger: Merci d'envoyer le **numéro de room actuel** dans le salon textuel associé à votre vocal.\n:handshake: Cela permet aux autres joueurs de vous rejoindre plus facilement.\n*N'oubliez pas de le renvoyer à chaque fois que vous changez de room!*`,
-                        },
-                    ),
-            ],
+            embeds: [voiceChatRulesEmbed],
             components: [
                 new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
                     new ButtonBuilder()
@@ -296,13 +305,21 @@ const logUserJoinedVoiceChannel = async (voiceState: VoiceState) => {
         ],
     })
 
+    const roomNumber = brawlhallaRoomNumbers.get(channel.id)
+
+    if (!!roomNumber) {
+        channel.send(
+            `${voiceState.member?.user}, Le numéro de la room est \`${roomNumber}\``,
+        )
+    }
+
     log(
         "╭ " +
-        `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has joined [${channel.name}]`,
+            `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has joined [${channel.name}]`,
     )
     log(
         "╰ " +
-        `  ${channel.members.size}/${channel.userLimit} users in channel`,
+            `  ${channel.members.size}/${channel.userLimit} users in channel`,
     )
     newLine()
 
@@ -414,8 +431,33 @@ client.on("interactionCreate", async (interaction) => {
         ephemeral: true,
     })
 
-
     interaction.message.delete()
+})
+
+client.on("messageCreate", (message) => {
+    if (message.author.bot) return
+
+    if (message.channel.isDMBased()) return
+
+    if (!isVoiceChannel(message.channel as GuildChannel)) return
+
+    if (isBrawlhallaRoomNumber(message.content)) {
+        brawlhallaRoomNumbers.set(message.channel.id, message.content)
+        message.channel.send(
+            `Le numéro de la room est maintenant: \`${message.content}\`.`,
+        )
+        return
+    } else if (message.content === "room") {
+        const roomNumber = brawlhallaRoomNumbers.get(message.channel.id)
+        if (roomNumber) {
+            message.channel.send(`Le numéro de la room est \`${roomNumber}\`.`)
+        } else {
+            message.channel.send(
+                `Le numéro de la room n'est pas encore défini.`,
+            )
+        }
+        return
+    }
 })
 
 client.on("ready", () => {
