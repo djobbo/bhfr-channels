@@ -462,7 +462,7 @@ const voiceRulesCommand = createSlashCommand(
 ).exec(async ({}, interaction) => {
     await interaction.reply({
         embeds: [voiceChatRulesEmbed],
-        ephemeral: true,
+        ephemeral: !isMemberAdmin(interaction.member as GuildMember),
     })
 })
 
