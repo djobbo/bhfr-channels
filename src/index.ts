@@ -1,6 +1,5 @@
 import {
     ChannelType,
-    Client,
     GatewayIntentBits,
     GuildMember,
     Message,
@@ -17,7 +16,12 @@ import {
     MessageActionRowComponentBuilder,
     GuildChannel,
 } from "discord.js"
+import { Client } from "reaccord"
 import { config as loadEnv } from "dotenv"
+import {
+    createMessageMenuCommand,
+    createSlashCommand,
+} from "reaccord/lib/Command"
 
 loadEnv()
 
@@ -34,6 +38,8 @@ const {
     VOICE_CHANNELS_RULES_ROLE_ID = "",
     SUPPORT_CHANNEL_ID = "",
     RULES_CHANNEL_ID = "",
+    DISCORD_CLIENT_ID = "",
+    DEV_GUILD_ID = "",
 } = process.env
 
 const ACCEPT_VOICE_CHAT_RULES_CUSTOM_ID = "accept_voice_chat_rules"
@@ -62,6 +68,9 @@ const client = new Client({
         GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.GuildMessageReactions,
     ],
+    token: DISCORD_TOKEN,
+    clientId: DISCORD_CLIENT_ID,
+    devGuildId: DEV_GUILD_ID,
 })
 
 const voiceChatRulesEmbed = new EmbedBuilder()
@@ -109,7 +118,7 @@ const getVoiceLogsChannel = () => {
 
 const saveMoment = async (message: Message, user: User) => {
     const channel = getMomentsChannel()
-    if (!channel) return
+    if (!channel) throw new Error("Moments channel not found")
 
     let hasContent = false
 
@@ -349,7 +358,7 @@ const logUserJoinedVoiceChannel = async (voiceState: VoiceState) => {
     }
 }
 
-client.on("voiceStateUpdate", async (oldState, newState) => {
+client.listenTo("voiceStateUpdate", async (oldState, newState) => {
     if (oldState.channel?.id === newState.channel?.id) return
 
     await deleteChannelIfEmpty(oldState)
@@ -360,53 +369,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     })
 })
 
-type RawReactionEventData = {
-    user_id: string
-    message_id: string
-    emoji: { name: string; id: null }
-    channel_id: string
-    guild_id: string
-}
-
-const isReactionAddEvent = (
-    event: any,
-): event is object & { t: "MESSAGE_REACTION_ADD" } =>
-    event.t === "MESSAGE_REACTION_ADD"
-
-client.on("raw", async (event: { d: RawReactionEventData; t: string }) => {
-    if (!isReactionAddEvent(event)) return
-
-    const { d: data } = event
-    const user = await client.users.fetch(data.user_id)
-
-    if (!user || user.bot) return
-
-    const channel = client.channels.cache.get(data.channel_id)
-    if (!channel || channel.type !== ChannelType.GuildText) return
-
-    if (channel.messages.cache.has(data.message_id)) return
-
-    const message = await channel.messages.fetch(data.message_id)
-
-    if (!message) return
-
-    log(`${user.tag} (${user.id}) reacted with ${data.emoji.name}`)
-    newLine()
-
-    if (data.emoji.name !== MOMENT_EMOJI) return
-
-    const member = message.guild?.members.cache.get(user.id)
-
-    if (!isMemberAdmin(member) && !canAddMoment(member)) return
-
-    try {
-        await saveMoment(message, user)
-    } catch (e) {
-        console.error(e)
-    }
-})
-
-client.on("interactionCreate", async (interaction) => {
+client.listenTo("interactionCreate", async (interaction) => {
     if (!interaction.isButton()) return
 
     if (interaction.customId !== ACCEPT_VOICE_CHAT_RULES_CUSTOM_ID) return
@@ -434,7 +397,7 @@ client.on("interactionCreate", async (interaction) => {
     interaction.message.delete()
 })
 
-client.on("messageCreate", (message) => {
+client.listenTo("messageCreate", (message) => {
     if (message.author.bot) return
 
     if (message.channel.isDMBased()) return
@@ -460,9 +423,119 @@ client.on("messageCreate", (message) => {
     }
 })
 
-client.on("ready", () => {
-    log(`Logged in as ${client.user?.tag}!`)
-    newLine()
+const favoriteCommand = createMessageMenuCommand("Funny Moment").exec(
+    async (interaction) => {
+        if (!interaction.isMessageContextMenuCommand()) return
+
+        const { targetMessage, user, guild } = interaction
+
+        const member = await guild?.members.fetch(user.id)
+
+        if (!isMemberAdmin(member) && !canAddMoment(member)) {
+            interaction.reply({
+                content: `Vous n'avez pas la permission d'ajouter un favoris.`,
+                ephemeral: true,
+            })
+            return
+        }
+
+        try {
+            await saveMoment(targetMessage, user)
+        } catch {
+            interaction.reply({
+                content: `Une erreur est survenue.`,
+                ephemeral: true,
+            })
+            return
+        }
+
+        await interaction.reply({
+            content: `Favoris ajouté !`,
+            ephemeral: true,
+        })
+    },
+)
+
+const voiceRulesCommand = createSlashCommand(
+    "regles-salons",
+    "Règles des salons vocaux",
+).exec(async ({}, interaction) => {
+    await interaction.reply({
+        embeds: [voiceChatRulesEmbed],
+        ephemeral: true,
+    })
 })
 
-client.login(DISCORD_TOKEN)
+const getRandomEmojiSequence = (
+    emojis: string[],
+    minLength: number = 1,
+    maxLength = 8,
+) => {
+    const length =
+        Math.floor(Math.random() * (maxLength - minLength + 1)) + minLength
+    const sequence = Array.from(
+        { length },
+        () => emojis[Math.floor(Math.random() * emojis.length)],
+    )
+    return `:${sequence.join("::")}:`
+}
+
+const mockMessageCommand = createMessageMenuCommand("Se moquer").exec(
+    async (interaction) => {
+        if (!interaction.isMessageContextMenuCommand()) return
+
+        const { targetMessage, user, guild } = interaction
+
+        const member = await guild?.members.fetch(user.id)
+
+        if (!isMemberAdmin(member)) {
+            interaction.reply({
+                content: `Vous n'avez pas la permission de vous moquer. 😈`,
+                ephemeral: true,
+            })
+            return
+        }
+
+        try {
+            const emojis = getRandomEmojiSequence(
+                [
+                    "sob",
+                    "joy",
+                    "rofl",
+                    "fire",
+                    "100",
+                    "nerd",
+                    "person_swimming",
+                    "woman_swimming",
+                    "man_swimming",
+                    "thumbsup",
+                    "skull",
+                    "flushed",
+                ],
+                12,
+                24,
+            )
+            await targetMessage.reply(emojis)
+        } catch {
+            interaction.reply({
+                content: `Une erreur est survenue.`,
+                ephemeral: true,
+            })
+            return
+        }
+
+        await interaction.reply({
+            content: `Message moqué !`,
+            ephemeral: true,
+        })
+    },
+)
+
+client
+    .registerCommand(favoriteCommand)
+    .registerCommand(voiceRulesCommand)
+    .registerCommand(mockMessageCommand)
+    .connect(() => {
+        log(`Logged in as ${client.user?.tag}!`)
+        newLine()
+    })
