@@ -20,8 +20,9 @@
 	"dependencies": {
 		"chalk": "^5.0.1",
 		"discord.js": "^14.11.0",
-		"dotenv": "^16.3.1",
-		"reaccord": "0.0.1-dev.1662751121068.0fe298a"
+		"dotenv": "^16.0.2",
+		"reaccord": "0.0.1-dev.1680552809439.fc17bd0",
+		"redis": "^4.6.6"
 	},
 	"engines": {
 		"node": "18.x",

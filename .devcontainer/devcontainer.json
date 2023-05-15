@@ -1,0 +1,17 @@
+{
+	"name": "Revolubot",
+	"workspaceFolder": "/workspace",
+	"customizations": {
+		"vscode": {
+			"extensions": []
+		}
+	},
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "app",
+	"forwardPorts": [3000],
+	"portsAttributes": {
+		"3000": {
+			"label": "API"
+		}
+	}
+}
