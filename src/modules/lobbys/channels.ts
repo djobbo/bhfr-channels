@@ -1,7 +1,9 @@
-import { GuildChannel, VoiceChannel } from 'discord.js'
-import { GEN_CHANNEL_PREFIX, CATEGORY_PREFIX, VOICE_CHANNEL_PREFIX } from './constants'
-
-
+import {
+    CATEGORY_PREFIX,
+    GEN_CHANNEL_PREFIX,
+    VOICE_CHANNEL_PREFIX,
+} from "./constants"
+import type { GuildChannel, VoiceChannel } from "discord.js"
 
 export const isGeneratorChannel = (
     channel: GuildChannel | null,

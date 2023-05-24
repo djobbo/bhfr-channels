@@ -1,11 +1,16 @@
-import { VoiceState, EmbedBuilder, Client } from 'discord.js'
-import { getVoiceLogsChannel } from '../../helpers/channels'
-import { isVoiceChannel } from './channels'
-import { log, newLine } from '../../helpers/log'
-import { RedisClientType } from 'redis'
-import { REDIS_BRAWLHALLA_LOBBY_PREFIX } from './constants'
+import { EmbedBuilder } from "discord.js"
+import { REDIS_BRAWLHALLA_LOBBY_PREFIX } from "./constants"
+import { getVoiceLogsChannel } from "../../helpers/channels"
+import { isVoiceChannel } from "./channels"
+import { log, newLine } from "../../helpers/log"
+import type { Client, VoiceState } from "discord.js"
+import type { RedisClientType } from "redis"
 
-export const deleteChannelIfEmpty = async (voiceState: VoiceState, client: Client, redisClient: RedisClientType) => {
+export const deleteChannelIfEmpty = async (
+    voiceState: VoiceState,
+    client: Client,
+    redisClient: RedisClientType,
+) => {
     const channel = voiceState.channel
 
     if (!isVoiceChannel(channel)) return

@@ -1,5 +1,6 @@
-import { Channel, TextChannel, ChannelType, Client } from 'discord.js'
-import { VOICE_LOGS_CHANNEL_ID } from '../env'
+import { ChannelType } from "discord.js"
+import { VOICE_LOGS_CHANNEL_ID } from "../env"
+import type { Channel, Client, TextChannel } from "discord.js"
 
 export const isTextChannel = (channel?: Channel): channel is TextChannel =>
     !!channel && channel.type === ChannelType.GuildText

@@ -1,8 +1,9 @@
-import { Message, User, EmbedBuilder, Client } from 'discord.js'
-import { isTextChannel } from '../../helpers/channels'
-import { MOMENTS_CHANNEL_ID } from '../../env'
-import { log, newLine } from '../../helpers/log'
-import { MOMENT_EMOJI } from '../lobbys/constants'
+import { EmbedBuilder } from "discord.js"
+import { MOMENTS_CHANNEL_ID } from "../../env"
+import { MOMENT_EMOJI } from "../lobbys/constants"
+import { isTextChannel } from "../../helpers/channels"
+import { log, newLine } from "../../helpers/log"
+import type { Client, Message, User } from "discord.js"
 
 const getMomentsChannel = (client: Client) => {
     const channel = client.channels.cache.get(MOMENTS_CHANNEL_ID)
@@ -10,7 +11,11 @@ const getMomentsChannel = (client: Client) => {
     return channel
 }
 
-export const saveMoment = async (message: Message, user: User, client: Client) => {
+export const saveMoment = async (
+    message: Message,
+    user: User,
+    client: Client,
+) => {
     const channel = getMomentsChannel(client)
     if (!channel) throw new Error("Moments channel not found")
 

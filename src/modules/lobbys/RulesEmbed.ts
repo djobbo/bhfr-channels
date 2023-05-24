@@ -1,5 +1,5 @@
-import { EmbedBuilder } from 'discord.js';
-import { RULES_CHANNEL_ID, SUPPORT_CHANNEL_ID } from '../../env';
+import { EmbedBuilder } from "discord.js"
+import { RULES_CHANNEL_ID, SUPPORT_CHANNEL_ID } from "../../env"
 
 export const voiceChatRulesEmbed = new EmbedBuilder()
     .setColor("White")

@@ -1,9 +1,8 @@
-import { GuildMember } from 'discord.js'
-import { createMessageMenuCommand } from 'reaccord/lib/Command'
-import { addMomentsRoleIds } from '../../env'
-import { isMemberAdmin } from '../../helpers/userRoles'
-import { saveMoment } from './saveMoment'
-
+import { addMomentsRoleIds } from "../../env"
+import { createMessageMenuCommand } from "reaccord/lib/Command"
+import { isMemberAdmin } from "../../helpers/userRoles"
+import { saveMoment } from "./saveMoment"
+import type { GuildMember } from "discord.js"
 
 const canAddMoment = (member?: GuildMember): member is GuildMember =>
     !!member && addMomentsRoleIds.some((id) => member.roles.cache.has(id))

@@ -1,4 +1,3 @@
-
 export const getRandomEmojiSequence = (
     emojis: string[],
     minLength: number = 1,

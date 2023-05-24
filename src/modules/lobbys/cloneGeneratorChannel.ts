@@ -1,10 +1,14 @@
-import { VoiceState, EmbedBuilder, Client } from 'discord.js'
-import { isGeneratorChannel } from './channels'
-import { getVoiceLogsChannel } from '../../helpers/channels'
-import { log, newLine } from '../../helpers/log'
-import { GEN_CHANNEL_PREFIX, VOICE_CHANNEL_PREFIX } from './constants'
+import { EmbedBuilder } from "discord.js"
+import { GEN_CHANNEL_PREFIX, VOICE_CHANNEL_PREFIX } from "./constants"
+import { getVoiceLogsChannel } from "../../helpers/channels"
+import { isGeneratorChannel } from "./channels"
+import { log, newLine } from "../../helpers/log"
+import type { Client, VoiceState } from "discord.js"
 
-export const cloneGeneratorChannel = async (voiceState: VoiceState, client: Client) => {
+export const cloneGeneratorChannel = async (
+    voiceState: VoiceState,
+    client: Client,
+) => {
     const channel = voiceState.channel
 
     if (!isGeneratorChannel(channel)) return null

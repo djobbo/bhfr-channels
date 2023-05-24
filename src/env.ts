@@ -1,4 +1,3 @@
-
 import { config as loadEnv } from "dotenv"
 loadEnv()
 
@@ -13,6 +12,7 @@ export const {
     RULES_CHANNEL_ID = "",
     DISCORD_CLIENT_ID = "",
     DEV_GUILD_ID = "",
+    BRAWLHALLA_API_KEY = "",
 } = process.env
 
 export const addMomentsRoleIds = ADD_MOMENTS_ROLES_IDS.split(",")

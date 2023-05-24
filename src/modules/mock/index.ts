@@ -1,6 +1,6 @@
-import { createMessageMenuCommand } from 'reaccord/lib/Command'
-import { getRandomEmojiSequence } from '../../helpers/getRandomEmojiSequence'
-import { isMemberAdmin } from '../../helpers/userRoles'
+import { createMessageMenuCommand } from "reaccord/lib/Command"
+import { getRandomEmojiSequence } from "../../helpers/getRandomEmojiSequence"
+import { isMemberAdmin } from "../../helpers/userRoles"
 
 export const mockMessageCommand = createMessageMenuCommand("Se moquer").exec(
     async (interaction) => {

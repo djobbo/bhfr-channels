@@ -1,15 +1,29 @@
-import { VoiceState, ActionRowBuilder, MessageActionRowComponentBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, Client } from 'discord.js'
-import { hasAcceptedVoiceChatRules } from '../../helpers/userRoles'
-import { voiceChatRulesEmbed } from './RulesEmbed'
-import { isVoiceChannel } from './channels'
-import { log, newLine } from '../../helpers/log'
-import { getVoiceLogsChannel } from '../../helpers/channels'
-import { REDIS_BRAWLHALLA_LOBBY_PREFIX } from './constants'
-import { RedisClientType } from 'redis'
+import {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    EmbedBuilder,
+} from "discord.js"
+import { REDIS_BRAWLHALLA_LOBBY_PREFIX } from "./constants"
+import { getVoiceLogsChannel } from "../../helpers/channels"
+import { hasAcceptedVoiceChatRules } from "../../helpers/userRoles"
+import { isVoiceChannel } from "./channels"
+import { log, newLine } from "../../helpers/log"
+import { voiceChatRulesEmbed } from "./RulesEmbed"
+import type {
+    Client,
+    MessageActionRowComponentBuilder,
+    VoiceState,
+} from "discord.js"
+import type { RedisClientType } from "redis"
 
 export const ACCEPT_VOICE_CHAT_RULES_CUSTOM_ID = "accept_voice_chat_rules"
 
-export const logUserJoinedVoiceChannel = async (voiceState: VoiceState, client: Client, redisClient: RedisClientType) => {
+export const logUserJoinedVoiceChannel = async (
+    voiceState: VoiceState,
+    client: Client,
+    redisClient: RedisClientType,
+) => {
     const channel = voiceState.channel
 
     if (!isVoiceChannel(channel)) return
@@ -40,7 +54,9 @@ export const logUserJoinedVoiceChannel = async (voiceState: VoiceState, client: 
         ],
     })
 
-    const roomNumber = await redisClient.get(`${REDIS_BRAWLHALLA_LOBBY_PREFIX}${channel.id}`)
+    const roomNumber = await redisClient.get(
+        `${REDIS_BRAWLHALLA_LOBBY_PREFIX}${channel.id}`,
+    )
 
     if (!!roomNumber) {
         channel.send(

@@ -3,7 +3,7 @@
 	"workspaceFolder": "/workspace",
 	"customizations": {
 		"vscode": {
-			"extensions": []
+			"extensions": ["dbaeumer.vscode-eslint"]
 		}
 	},
 	"dockerComposeFile": "docker-compose.yml",
