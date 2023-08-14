@@ -1,0 +1,280 @@
+{
+    "version": "5",
+    "dialect": "pg",
+    "id": "1d1e0666-877f-4777-a50a-3f061e95d508",
+    "prevId": "00000000-0000-0000-0000-000000000000",
+    "tables": {
+        "lobbys": {
+            "name": "lobbys",
+            "schema": "",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "serial",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "discord_id": {
+                    "name": "discord_id",
+                    "type": "varchar",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "guild_id": {
+                    "name": "guild_id",
+                    "type": "varchar",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "name": {
+                    "name": "name",
+                    "type": "varchar",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "room": {
+                    "name": "room",
+                    "type": "varchar",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "date",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "deleted_at": {
+                    "name": "deleted_at",
+                    "type": "date",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "generator_channel_id": {
+                    "name": "generator_channel_id",
+                    "type": "varchar",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "lobbys_discord_id_unique": {
+                    "name": "lobbys_discord_id_unique",
+                    "nullsNotDistinct": false,
+                    "columns": ["discord_id"]
+                }
+            }
+        },
+        "users": {
+            "name": "users",
+            "schema": "",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "serial",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "discord_id": {
+                    "name": "discord_id",
+                    "type": "varchar",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "username": {
+                    "name": "username",
+                    "type": "varchar",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "avatar": {
+                    "name": "avatar",
+                    "type": "varchar",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "users_discord_id_unique": {
+                    "name": "users_discord_id_unique",
+                    "nullsNotDistinct": false,
+                    "columns": ["discord_id"]
+                }
+            }
+        },
+        "users_to_lobbys": {
+            "name": "users_to_lobbys",
+            "schema": "",
+            "columns": {
+                "user_id": {
+                    "name": "user_id",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "lobby_id": {
+                    "name": "lobby_id",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "users_to_lobbys_user_id_users_id_fk": {
+                    "name": "users_to_lobbys_user_id_users_id_fk",
+                    "tableFrom": "users_to_lobbys",
+                    "tableTo": "users",
+                    "columnsFrom": ["user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "users_to_lobbys_lobby_id_lobbys_id_fk": {
+                    "name": "users_to_lobbys_lobby_id_lobbys_id_fk",
+                    "tableFrom": "users_to_lobbys",
+                    "tableTo": "lobbys",
+                    "columnsFrom": ["lobby_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {
+                "users_to_lobbys_user_id_lobby_id": {
+                    "name": "users_to_lobbys_user_id_lobby_id",
+                    "columns": ["user_id", "lobby_id"]
+                }
+            },
+            "uniqueConstraints": {}
+        },
+        "users_to_voice_events": {
+            "name": "users_to_voice_events",
+            "schema": "",
+            "columns": {
+                "user_id": {
+                    "name": "user_id",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "voice_event_id": {
+                    "name": "voice_event_id",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "users_to_voice_events_user_id_users_id_fk": {
+                    "name": "users_to_voice_events_user_id_users_id_fk",
+                    "tableFrom": "users_to_voice_events",
+                    "tableTo": "users",
+                    "columnsFrom": ["user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "users_to_voice_events_voice_event_id_voice_events_id_fk": {
+                    "name": "users_to_voice_events_voice_event_id_voice_events_id_fk",
+                    "tableFrom": "users_to_voice_events",
+                    "tableTo": "voice_events",
+                    "columnsFrom": ["voice_event_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {
+                "users_to_voice_events_user_id_voice_event_id": {
+                    "name": "users_to_voice_events_user_id_voice_event_id",
+                    "columns": ["user_id", "voice_event_id"]
+                }
+            },
+            "uniqueConstraints": {}
+        },
+        "voice_events": {
+            "name": "voice_events",
+            "schema": "",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "serial",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "timestamp": {
+                    "name": "timestamp",
+                    "type": "date",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "user_id": {
+                    "name": "user_id",
+                    "type": "varchar",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "lobby_id": {
+                    "name": "lobby_id",
+                    "type": "varchar",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "event_type": {
+                    "name": "event_type",
+                    "type": "event_type",
+                    "primaryKey": false,
+                    "notNull": true
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "voice_events_user_id_users_discord_id_fk": {
+                    "name": "voice_events_user_id_users_discord_id_fk",
+                    "tableFrom": "voice_events",
+                    "tableTo": "users",
+                    "columnsFrom": ["user_id"],
+                    "columnsTo": ["discord_id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "voice_events_lobby_id_lobbys_discord_id_fk": {
+                    "name": "voice_events_lobby_id_lobbys_discord_id_fk",
+                    "tableFrom": "voice_events",
+                    "tableTo": "lobbys",
+                    "columnsFrom": ["lobby_id"],
+                    "columnsTo": ["discord_id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {}
+        }
+    },
+    "enums": {
+        "event_type": {
+            "name": "event_type",
+            "values": {
+                "create_lobby": "create_lobby",
+                "delete_lobby": "delete_lobby",
+                "join_lobby": "join_lobby",
+                "leave_lobby": "leave_lobby"
+            }
+        }
+    },
+    "schemas": {},
+    "_meta": {
+        "schemas": {},
+        "tables": {},
+        "columns": {}
+    }
+}

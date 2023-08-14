@@ -1,0 +1,20 @@
+{
+    "version": "5",
+    "dialect": "pg",
+    "entries": [
+        {
+            "idx": 0,
+            "version": "5",
+            "when": 1691865938683,
+            "tag": "0000_adorable_hemingway",
+            "breakpoints": true
+        },
+        {
+            "idx": 1,
+            "version": "5",
+            "when": 1691945126584,
+            "tag": "0001_crazy_expediter",
+            "breakpoints": true
+        }
+    ]
+}
