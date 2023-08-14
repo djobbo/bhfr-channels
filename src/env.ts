@@ -1,5 +1,5 @@
 import { config as loadEnv } from "dotenv"
-loadEnv()
+loadEnv({ path: ".env.local" })
 
 // TODO: validate
 export const {
@@ -13,6 +13,8 @@ export const {
     DISCORD_CLIENT_ID = "",
     DEV_GUILD_ID = "",
     BRAWLHALLA_API_KEY = "",
+    REDIS_URL = "",
+    DATABASE_URL = "",
 } = process.env
 
 export const addMomentsRoleIds = ADD_MOMENTS_ROLES_IDS.split(",")

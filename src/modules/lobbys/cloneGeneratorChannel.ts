@@ -1,46 +1,29 @@
-import { EmbedBuilder } from "discord.js"
-import { GEN_CHANNEL_PREFIX, VOICE_CHANNEL_PREFIX } from "./constants"
-import { getVoiceLogsChannel } from "../../helpers/channels"
-import { isGeneratorChannel } from "./channels"
-import { log, newLine } from "../../helpers/log"
-import type { Client, VoiceState } from "discord.js"
+import { GEN_CHANNEL_PREFIX, LOBBY_CHANNEL_PREFIX } from "./constants"
+import { type GeneratorChannel, isLobbyChannel } from "./channels"
+import { logJoinLobby } from "./logVoiceEvent"
+import type { User, VoiceChannel } from "discord.js"
 
 export const cloneGeneratorChannel = async (
-    voiceState: VoiceState,
-    client: Client,
+    generatorChannel: GeneratorChannel,
+    user: User,
 ) => {
-    const channel = voiceState.channel
+    if (!generatorChannel.parent) return null
 
-    if (!isGeneratorChannel(channel)) return null
+    const newChannelName = generatorChannel.name.slice(
+        GEN_CHANNEL_PREFIX.length,
+    )
 
-    if (!channel.parent) return null
-
-    const voiceLogsChannel = getVoiceLogsChannel(client)
-
-    const newChannelName = channel.name.slice(GEN_CHANNEL_PREFIX.length)
-
-    const genChannel = await channel.clone({
-        name: `${VOICE_CHANNEL_PREFIX}${newChannelName}`,
-        parent: channel.parent,
+    const lobbyChannel: VoiceChannel = await generatorChannel.clone({
+        name: `${LOBBY_CHANNEL_PREFIX}${newChannelName}`,
+        parent: generatorChannel.parent,
         position: 999,
     })
 
-    log(
-        `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has created [${channel.name}]`,
-    )
-    newLine()
-
-    if (!!voiceLogsChannel) {
-        const embed = new EmbedBuilder() //
-            .setTitle(channel.name)
-            .addFields({
-                name: "Événement",
-                value: `${voiceState.member?.user} (${voiceState.member?.user.id}) a créé le salon ${genChannel.name}`,
-            })
-            .setTimestamp(new Date())
-            .setColor("Blue")
-        voiceLogsChannel.send({ embeds: [embed] })
+    if (!isLobbyChannel(lobbyChannel)) {
+        throw new Error("Cloned channel is not a lobby channel")
     }
 
-    return genChannel
+    logJoinLobby(lobbyChannel, user, generatorChannel)
+
+    return lobbyChannel
 }

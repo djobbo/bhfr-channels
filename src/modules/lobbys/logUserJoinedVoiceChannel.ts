@@ -5,9 +5,10 @@ import {
     EmbedBuilder,
 } from "discord.js"
 import { REDIS_BRAWLHALLA_LOBBY_PREFIX } from "./constants"
+import { type RedisClient } from "../../redis"
 import { getVoiceLogsChannel } from "../../helpers/channels"
 import { hasAcceptedVoiceChatRules } from "../../helpers/userRoles"
-import { isVoiceChannel } from "./channels"
+import { isLobbyChannel } from "./channels"
 import { log, newLine } from "../../helpers/log"
 import { voiceChatRulesEmbed } from "./RulesEmbed"
 import type {
@@ -15,18 +16,17 @@ import type {
     MessageActionRowComponentBuilder,
     VoiceState,
 } from "discord.js"
-import type { RedisClientType } from "redis"
 
 export const ACCEPT_VOICE_CHAT_RULES_CUSTOM_ID = "accept_voice_chat_rules"
 
 export const logUserJoinedVoiceChannel = async (
     voiceState: VoiceState,
     client: Client,
-    redisClient: RedisClientType,
+    redisClient: RedisClient,
 ) => {
     const channel = voiceState.channel
 
-    if (!isVoiceChannel(channel)) return
+    if (!isLobbyChannel(channel)) return
 
     if (!hasAcceptedVoiceChatRules(voiceState.member)) {
         channel.send({
@@ -54,24 +54,6 @@ export const logUserJoinedVoiceChannel = async (
         ],
     })
 
-    const roomNumber = await redisClient.get(
-        `${REDIS_BRAWLHALLA_LOBBY_PREFIX}${channel.id}`,
-    )
-
-    if (!!roomNumber) {
-        channel.send(
-            `${voiceState.member?.user}, Le numéro de la room est \`${roomNumber}\``,
-        )
-    }
-
-    log(
-        "╭ " +
-            `${voiceState.member?.user.tag} (${voiceState.member?.user.id}) has joined [${channel.name}]`,
-    )
-    log(
-        "╰ " +
-            `  ${channel.members.size}/${channel.userLimit} users in channel`,
-    )
     newLine()
 
     const voiceLogsChannel = getVoiceLogsChannel(client)

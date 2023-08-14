@@ -5,36 +5,45 @@
 	"main": "index.js",
 	"scripts": {
 		"start": "node ./dist/index.js",
-		"dev": "ts-node-dev --respawn ./src/index.ts",
+		"dev": "tsx watch ./src/index.ts",
 		"build": "tsc",
 		"ts:check": "tsc --noEmit",
-		"lint": "eslint --fix --ext .js,.jsx,.ts,.tsx,.json ."
+		"lint": "eslint --fix --ext .js,.jsx,.ts,.tsx,.json .",
+		"db:gen": "drizzle-kit generate:pg",
+		"migrate": "pnpm db:gen && tsx src/db/migrate.ts",
+		"studio": "drizzle-kit studio --port 3001"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
 	"devDependencies": {
-		"@types/node": "^18.7.18",
-		"@typescript-eslint/eslint-plugin": "^5.59.7",
-		"@typescript-eslint/parser": "^5.59.7",
-		"eslint": "^8.40.0",
-		"eslint-plugin-import": "^2.27.5",
-		"eslint-plugin-prettier": "^4.2.1",
-		"eslint-plugin-react": "^7.32.2",
+		"@types/node": "^20.5.0",
+		"@types/pg": "^8.10.2",
+		"@types/ws": "^8.5.5",
+		"@typescript-eslint/eslint-plugin": "^6.3.0",
+		"@typescript-eslint/parser": "^6.3.0",
+		"drizzle-kit": "^0.19.12",
+		"eslint": "^8.47.0",
+		"eslint-plugin-import": "^2.28.0",
+		"eslint-plugin-prettier": "^5.0.0",
+		"eslint-plugin-react": "^7.33.1",
 		"eslint-plugin-sort-imports-es6-autofix": "^0.6.0",
-		"prettier": "^2.8.8",
-		"ts-node-dev": "^2.0.0",
-		"typescript": "^4.8.3"
+		"prettier": "^3.0.1",
+		"tsx": "^3.12.7",
+		"typescript": "^5.1.6"
 	},
 	"dependencies": {
-		"chalk": "^5.0.1",
-		"discord.js": "^14.11.0",
-		"dotenv": "^16.0.2",
+		"chalk": "^5.3.0",
+		"discord.js": "^14.12.1",
+		"dotenv": "^16.3.1",
+		"drizzle-orm": "^0.28.2",
+		"pg": "^8.11.2",
+		"postgres": "^3.3.5",
 		"reaccord": "0.0.1-dev.1680552809439.fc17bd0",
-		"redis": "^4.6.6"
+		"redis": "^4.6.7",
+		"ws": "^8.13.0"
 	},
 	"engines": {
-		"node": "18.x",
-		"yarn": "1.x"
+		"node": "18.x"
 	}
 }

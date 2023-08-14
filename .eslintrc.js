@@ -34,18 +34,12 @@ module.exports = {
                 memberSyntaxSortOrder: ["none", "all", "multiple", "single"],
             },
         ],
-        "react/function-component-definition": [
-            "error",
-            {
-                namedComponents: "arrow-function",
-                unnamedComponents: "arrow-function",
-            },
-        ],
         "no-var": "error",
         "@typescript-eslint/consistent-type-imports": [
             "error",
             {
                 prefer: "type-imports",
+                fixStyle: "inline-type-imports",
             },
         ],
         "import/no-duplicates": ["error", { considerQueryString: true }],

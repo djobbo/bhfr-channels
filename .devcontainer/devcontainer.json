@@ -3,12 +3,17 @@
 	"workspaceFolder": "/workspace",
 	"customizations": {
 		"vscode": {
-			"extensions": ["dbaeumer.vscode-eslint"]
+			"extensions": [
+				"dbaeumer.vscode-eslint",
+				"bradlc.vscode-tailwindcss"
+			]
 		}
 	},
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "app",
-	"forwardPorts": [3000],
+	"forwardPorts": [
+		3000
+	],
 	"portsAttributes": {
 		"3000": {
 			"label": "API"

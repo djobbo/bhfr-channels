@@ -1,29 +1,19 @@
-import {
-    ACCEPT_VOICE_CHAT_RULES_CUSTOM_ID,
-    logUserJoinedVoiceChannel,
-} from "./modules/lobbys/logUserJoinedVoiceChannel"
 import { Client } from "reaccord"
-import {
-    DEV_GUILD_ID,
-    DISCORD_CLIENT_ID,
-    DISCORD_TOKEN,
-    VOICE_CHANNELS_RULES_ROLE_ID,
-} from "./env"
+import { DEV_GUILD_ID, DISCORD_CLIENT_ID, DISCORD_TOKEN } from "./env"
 import { GatewayIntentBits } from "discord.js"
-import { REDIS_BRAWLHALLA_LOBBY_PREFIX } from "./modules/lobbys/constants"
-import { cloneGeneratorChannel } from "./modules/lobbys/cloneGeneratorChannel"
+import { clanCommand } from "./modules/clans"
 import { createRedisClient } from "./redis"
-import { createSlashCommand } from "reaccord/lib/Command"
-import { deleteChannelIfEmpty } from "./modules/lobbys/deleteChannelIfEmpty"
+import { createWSServer } from "./ws/ws"
 import { favoriteCommand } from "./modules/favorite"
-import { hasAcceptedVoiceChatRules, isMemberAdmin } from "./helpers/userRoles"
-import { isVoiceChannel } from "./modules/lobbys/channels"
+import { lobbysModule } from "./modules/lobbys"
 import { log, newLine } from "./helpers/log"
 import { mockMessageCommand } from "./modules/mock"
-import { voiceChatRulesEmbed } from "./modules/lobbys/RulesEmbed"
-import type { GuildChannel, GuildMember } from "discord.js"
+import { registerModules } from "./modules/botModule"
 
-createRedisClient().then((redisClient) => {
+const main = async () => {
+    const redisClient = await createRedisClient()
+    const wss = await createWSServer(8080)
+
     const client = new Client({
         intents: [
             GatewayIntentBits.Guilds,
@@ -38,100 +28,14 @@ createRedisClient().then((redisClient) => {
         devGuildId: DEV_GUILD_ID,
     })
 
-    const brawlhallaRoomNumberRegex = /^\d{6}$/
-    const isBrawlhallaRoomNumber = (content: string) =>
-        brawlhallaRoomNumberRegex.test(content)
-
-    client.listenTo("voiceStateUpdate", async (oldState, newState) => {
-        if (oldState.channel?.id === newState.channel?.id) return
-
-        // @ts-expect-error redis client options
-        await deleteChannelIfEmpty(oldState, client, redisClient)
-        // @ts-expect-error redis client options
-        await logUserJoinedVoiceChannel(newState, client, redisClient)
-        await cloneGeneratorChannel(newState, client).then(async (channel) => {
-            if (!channel) return
-            newState.member?.voice.setChannel(channel)
-        })
-    })
-
-    client.listenTo("interactionCreate", async (interaction) => {
-        if (!interaction.isButton()) return
-
-        if (interaction.customId !== ACCEPT_VOICE_CHAT_RULES_CUSTOM_ID) return
-        const member = interaction.member as GuildMember
-
-        if (!member) return
-
-        if (!interaction.message.mentions.has(member.user)) {
-            interaction.reply({
-                content: `Vous n'êtes pas concerné par ce message.`,
-                ephemeral: true,
-            })
-            return
-        }
-
-        if (hasAcceptedVoiceChatRules(member)) return
-
-        await member.roles.add(VOICE_CHANNELS_RULES_ROLE_ID)
-
-        await interaction.reply({
-            content: `Merci ${member.user} ! Bon jeu !`,
-            ephemeral: true,
-        })
-
-        interaction.message.delete()
-    })
-
-    client.listenTo("messageCreate", async (message) => {
-        if (message.author.bot) return
-
-        if (message.channel.isDMBased()) return
-
-        if (!isVoiceChannel(message.channel as GuildChannel)) return
-
-        if (isBrawlhallaRoomNumber(message.content)) {
-            await redisClient.set(
-                `${REDIS_BRAWLHALLA_LOBBY_PREFIX}${message.channel.id}`,
-                message.content,
-            )
-            message.channel.send(
-                `Le numéro de la room est maintenant: \`${message.content}\`.`,
-            )
-            return
-        } else if (message.content === "room") {
-            const roomNumber = await redisClient.get(
-                `${REDIS_BRAWLHALLA_LOBBY_PREFIX}${message.channel.id}`,
-            )
-            if (roomNumber) {
-                message.channel.send(
-                    `Le numéro de la room est \`${roomNumber}\`.`,
-                )
-            } else {
-                message.channel.send(
-                    `Le numéro de la room n'est pas encore défini.`,
-                )
-            }
-            return
-        }
-    })
-
-    const voiceRulesCommand = createSlashCommand(
-        "regles-salons",
-        "Règles des salons vocaux",
-    ).exec(async ({}, interaction) => {
-        await interaction.reply({
-            embeds: [voiceChatRulesEmbed],
-            ephemeral: !isMemberAdmin(interaction.member as GuildMember),
-        })
-    })
+    registerModules({ client, redisClient, wss })([lobbysModule])
 
     client
-        .registerCommand(favoriteCommand)
-        .registerCommand(voiceRulesCommand)
-        .registerCommand(mockMessageCommand)
+        .registerCommands([favoriteCommand, mockMessageCommand, clanCommand])
         .connect(() => {
             log(`Logged in as ${client.user?.tag}!`)
             newLine()
         })
-})
+}
+
+main()

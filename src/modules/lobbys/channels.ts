@@ -1,20 +1,23 @@
 import {
     CATEGORY_PREFIX,
     GEN_CHANNEL_PREFIX,
-    VOICE_CHANNEL_PREFIX,
+    LOBBY_CHANNEL_PREFIX,
 } from "./constants"
 import type { GuildChannel, VoiceChannel } from "discord.js"
 
+export type GeneratorChannel = Brand<VoiceChannel, "generator">
+export type LobbyChannel = Brand<VoiceChannel, "lobby">
+
 export const isGeneratorChannel = (
     channel: GuildChannel | null,
-): channel is VoiceChannel =>
+): channel is GeneratorChannel =>
     !!channel &&
     channel.name.startsWith(GEN_CHANNEL_PREFIX) &&
     !!channel.parent?.name.startsWith(CATEGORY_PREFIX)
 
-export const isVoiceChannel = (
+export const isLobbyChannel = (
     channel: GuildChannel | null,
-): channel is VoiceChannel =>
+): channel is LobbyChannel =>
     !!channel &&
-    channel.name.startsWith(VOICE_CHANNEL_PREFIX) &&
+    channel.name.startsWith(LOBBY_CHANNEL_PREFIX) &&
     !!channel.parent?.name.startsWith(CATEGORY_PREFIX)
