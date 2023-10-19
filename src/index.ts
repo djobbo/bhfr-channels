@@ -40,7 +40,7 @@ const {
     RULES_CHANNEL_ID = "",
     DISCORD_CLIENT_ID = "",
     DEV_GUILD_ID = "",
-    ADMIN_CHANNEL_ID = ''
+    ADMIN_CHANNEL_ID = "",
 } = process.env
 
 const ACCEPT_VOICE_CHAT_RULES_CUSTOM_ID = "accept_voice_chat_rules"
@@ -376,32 +376,48 @@ client.listenTo("voiceStateUpdate", async (oldState, newState) => {
     })
 })
 
-client.listenTo('guildMemberAdd', async (member) => {
+client.listenTo("guildMemberAdd", async (member) => {
     // check if member has account age < 1 day
-    const accountAge = (Date.now() - member.user.createdAt.getTime()) / 1000 / 60 / 60 / 24
-    if (accountAge < 2) {
+    const accountAge =
+        (Date.now() - member.user.createdAt.getTime()) / 1000 / 60 / 60 / 24
+    if (accountAge < 1) {
         getAdminChannel()?.send({
             embeds: [
                 new EmbedBuilder()
                     .setColor("Purple")
                     .setTitle(`${member.user.tag} -> Compte trop récent`)
-                    .addFields([{
-                        name: "Compte",
-                        value: `${member.user} (${member.user.id})`
-                    
-                    }, {
-                        name: "Âge du compte",
-                        value: `${accountAge} jours`
-                    }, {
-                        name: 'compte créé le',
-                        value: `${Intl.DateTimeFormat("fr").format(member.user.createdAt)}`
-                    }, {
-                        name: 'Compte créé il y a',
-                        value: `${Math.floor(accountAge)} jours, ${Math.floor((accountAge - Math.floor(accountAge)) * 24)} heures`
-                    }])
+                    .addFields([
+                        {
+                            name: "Compte",
+                            value: `${member.user} (${member.user.id})`,
+                        },
+                        {
+                            name: "Âge du compte",
+                            value: `${accountAge} jours`,
+                        },
+                        {
+                            name: "compte créé le",
+                            value: `${Intl.DateTimeFormat("fr").format(
+                                member.user.createdAt,
+                            )}`,
+                        },
+                        {
+                            name: "Compte créé il y a",
+                            value: `${Math.floor(
+                                accountAge,
+                            )} jours, ${Math.floor(
+                                (accountAge - Math.floor(accountAge)) * 24,
+                            )} heures`,
+                        },
+                    ])
                     .setDescription(`id: ${member.user.id}`)
                     .setTimestamp(new Date()),
             ],
+        })
+
+        await member.ban({
+            deleteMessageSeconds: 3600,
+            reason: "Compte trop récent",
         })
     }
 })
