@@ -379,7 +379,7 @@ client.listenTo("voiceStateUpdate", async (oldState, newState) => {
 client.listenTo('guildMemberAdd', async (member) => {
     // check if member has account age < 1 day
     const accountAge = (Date.now() - member.user.createdAt.getTime()) / 1000 / 60 / 60 / 24
-    if (accountAge < 1) {
+    if (accountAge < 2) {
         getAdminChannel()?.send({
             embeds: [
                 new EmbedBuilder()
