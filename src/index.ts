@@ -414,11 +414,6 @@ client.listenTo("guildMemberAdd", async (member) => {
                     .setTimestamp(new Date()),
             ],
         })
-
-        await member.ban({
-            deleteMessageSeconds: 3600,
-            reason: "Compte trop récent",
-        })
     }
 })
 
