@@ -10,10 +10,6 @@ import {
     Channel,
     TextChannel,
     VoiceChannel,
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle,
-    MessageActionRowComponentBuilder,
     GuildChannel,
 } from "discord.js"
 import { Client } from "reaccord"
@@ -35,15 +31,12 @@ const {
     ADD_MOMENTS_ROLES_IDS = "",
     MOMENTS_CHANNEL_ID = "",
     VOICE_LOGS_CHANNEL_ID = "",
-    VOICE_CHANNELS_RULES_ROLE_ID = "",
     SUPPORT_CHANNEL_ID = "",
     RULES_CHANNEL_ID = "",
     DISCORD_CLIENT_ID = "",
     DEV_GUILD_ID = "",
     ADMIN_CHANNEL_ID = "",
 } = process.env
-
-const ACCEPT_VOICE_CHAT_RULES_CUSTOM_ID = "accept_voice_chat_rules"
 
 const addMomentsRoleIds = ADD_MOMENTS_ROLES_IDS.split(",")
 
@@ -54,11 +47,6 @@ const isMemberAdmin = (member?: GuildMember): member is GuildMember =>
 
 const canAddMoment = (member?: GuildMember): member is GuildMember =>
     !!member && addMomentsRoleIds.some((id) => member.roles.cache.has(id))
-
-const hasAcceptedVoiceChatRules = (member: GuildMember | null) =>
-    !VOICE_CHANNELS_RULES_ROLE_ID ||
-    !member ||
-    member.roles.cache.has(VOICE_CHANNELS_RULES_ROLE_ID)
 
 const client = new Client({
     intents: [
@@ -295,22 +283,6 @@ const logUserJoinedVoiceChannel = async (voiceState: VoiceState) => {
 
     if (!isVoiceChannel(channel)) return
 
-    if (!hasAcceptedVoiceChatRules(voiceState.member)) {
-        channel.send({
-            content: `Salut ${voiceState.member?.user} ! C'est peut être la première fois que tu crées ou rejoins un salon vocal, merci de lire et d'accepter les règles suivantes:`,
-            embeds: [voiceChatRulesEmbed],
-            components: [
-                new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(ACCEPT_VOICE_CHAT_RULES_CUSTOM_ID)
-                        .setEmoji("✅")
-                        .setLabel("Accepter")
-                        .setStyle(ButtonStyle.Secondary),
-                ),
-            ],
-        })
-    }
-
     channel.send({
         embeds: [
             new EmbedBuilder()
@@ -415,34 +387,6 @@ client.listenTo("guildMemberAdd", async (member) => {
             ],
         })
     }
-})
-
-client.listenTo("interactionCreate", async (interaction) => {
-    if (!interaction.isButton()) return
-
-    if (interaction.customId !== ACCEPT_VOICE_CHAT_RULES_CUSTOM_ID) return
-    const member = interaction.member as GuildMember
-
-    if (!member) return
-
-    if (!interaction.message.mentions.has(member.user)) {
-        interaction.reply({
-            content: `Vous n'êtes pas concerné par ce message.`,
-            ephemeral: true,
-        })
-        return
-    }
-
-    if (hasAcceptedVoiceChatRules(member)) return
-
-    await member.roles.add(VOICE_CHANNELS_RULES_ROLE_ID)
-
-    await interaction.reply({
-        content: `Merci ${member.user} ! Bon jeu !`,
-        ephemeral: true,
-    })
-
-    interaction.message.delete()
 })
 
 client.listenTo("messageCreate", (message) => {
