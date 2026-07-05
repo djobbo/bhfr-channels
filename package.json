@@ -13,14 +13,13 @@
 	"author": "",
 	"license": "ISC",
 	"devDependencies": {
-		"@types/node": "^22.5.0",
+		"@types/node": "^22.13.10",
 		"ts-node-dev": "^2.0.0",
-		"typescript": "^5.5.4"
+		"typescript": "^5.8.2"
 	},
 	"dependencies": {
-		"chalk": "^5.3.0",
-		"discord.js": "^14.15.3",
-		"dotenv": "^16.4.5",
+		"discord.js": "^14.18.0",
+		"dotenv": "^16.4.7",
 		"reaccord": "0.0.1-dev.1662751121068.0fe298a"
 	},
 	"engines": {
